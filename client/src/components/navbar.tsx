@@ -83,7 +83,18 @@ export default function Navbar() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => window.location.href = '/api/logout'}
+                    onClick={async () => {
+                      try {
+                        await fetch('/api/logout', {
+                          method: 'POST',
+                          credentials: 'include'
+                        });
+                        window.location.reload();
+                      } catch (error) {
+                        console.error('Logout error:', error);
+                        window.location.reload();
+                      }
+                    }}
                     className="text-gray-300 hover:text-white text-sm"
                     data-testid="button-logout"
                   >
