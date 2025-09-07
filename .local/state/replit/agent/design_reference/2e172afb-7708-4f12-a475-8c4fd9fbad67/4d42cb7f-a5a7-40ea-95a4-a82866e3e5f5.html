@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MentorLens - Student Analytics Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    borderRadius: {
+                        lg: "var(--radius)",
+                        md: "calc(var(--radius) - 2px)",
+                        sm: "calc(var(--radius) - 4px)",
+                    },
+                    colors: {
+                        background: "var(--background)",
+                        foreground: "var(--foreground)",
+                        card: {
+                            DEFAULT: "var(--card)",
+                            foreground: "var(--card-foreground)",
+                        },
+                        primary: {
+                            DEFAULT: "var(--primary)",
+                            foreground: "var(--primary-foreground)",
+                        },
+                        secondary: {
+                            DEFAULT: "var(--secondary)",
+                            foreground: "var(--secondary-foreground)",
+                        },
+                        muted: {
+                            DEFAULT: "var(--muted)",
+                            foreground: "var(--muted-foreground)",
+                        },
+                        accent: {
+                            DEFAULT: "var(--accent)",
+                            foreground: "var(--accent-foreground)",
+                        },
+                        border: "var(--border)",
+                        input: "var(--input)",
+                        ring: "var(--ring)",
+                    },
+                    fontFamily: {
+                        sans: ["Inter", "system-ui", "sans-serif"],
+                    }
+                },
+            }
+        };
+    </script>
+    <style>
+        :root {
+            --background: hsl(224 71% 4%);
+            --foreground: hsl(213 31% 91%);
+            --card: hsl(224 71% 4%);
+            --card-foreground: hsl(213 31% 91%);
+            --primary: hsl(210 40% 98%);
+            --primary-foreground: hsl(222.2 47.4% 11.2%);
+            --secondary: hsl(222.2 84% 4.9%);
+            --secondary-foreground: hsl(210 40% 98%);
+            --muted: hsl(223 47% 11%);
+            --muted-foreground: hsl(215.4 16.3% 56.9%);
+            --accent: hsl(216 34% 17%);
+            --accent-foreground: hsl(210 40% 98%);
+            --border: hsl(216 34% 17%);
+            --input: hsl(216 34% 17%);
+            --ring: hsl(224 71% 4%);
+            --radius: 0.75rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans antialiased">
+    <!-- @COMPONENT: App [main application container] -->
+    <div class="min-h-screen bg-gray-900">
+        <!-- @COMPONENT: Navbar [main navigation] -->
+        <nav class="bg-gray-800 border-b border-gray-700 sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <!-- @COMPONENT: Logo -->
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                                    <span class="text-white font-bold text-sm">ML</span>
+                                </div>
+                                <span class="text-xl font-semibold text-white">MentorLens</span>
+                            </div>
+                            <!-- @END_COMPONENT: Logo -->
+                        </div>
+                        <div class="hidden md:block ml-10">
+                            <div class="flex items-baseline space-x-4">
+                                <a href="#dashboard" data-event="click:navigateTo" class="text-blue-400 hover:text-blue-300 px-3 py-2 rounded-md text-sm font-medium border-b-2 border-blue-400 transition-colors">Dashboard</a>
+                                <a href="#upload" data-event="click:navigateTo" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Upload</a>
+                                <a href="#alerts" data-event="click:navigateTo" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Alerts</a>
+                                <a href="#settings" data-event="click:navigateTo" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Settings</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="hidden md:block">
+                        <div class="ml-4 flex items-center md:ml-6">
+                            <div class="relative">
+                                <button class="bg-gray-700 p-1 rounded-full text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white">
+                                    <span class="sr-only">View notifications</span>
+                                    <!-- Bell icon placeholder -->
+                                    <div class="h-6 w-6 rounded bg-gray-600"></div>
+                                </button>
+                            </div>
+                            <div class="ml-3 relative">
+                                <div class="flex items-center space-x-3">
+                                    <span class="text-sm text-gray-300" data-bind="user.email">mentor@school.edu</span>
+                                    <img class="h-8 w-8 rounded-full" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="User avatar">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Mobile menu button -->
+                    <div class="md:hidden">
+                        <button class="bg-gray-700 inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white">
+                            <span class="sr-only">Open main menu</span>
+                            <div class="h-6 w-6 bg-gray-500 rounded"></div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+        <!-- @END_COMPONENT: Navbar -->
+
+        <!-- @COMPONENT: MainContent [page content container] -->
+        <main class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+            
+            <!-- @COMPONENT: LoginPage [authentication form] -->
+            <div id="login-page" class="hidden min-h-screen flex items-center justify-center">
+                <div class="max-w-md w-full space-y-8">
+                    <div>
+                        <div class="mx-auto h-12 w-12 bg-blue-500 rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold">ML</span>
+                        </div>
+                        <h2 class="mt-6 text-center text-3xl font-bold text-white">
+                            Sign in to MentorLens
+                        </h2>
+                        <p class="mt-2 text-center text-sm text-gray-400">
+                            Monitor student progress and analytics
+                        </p>
+                    </div>
+                    <div class="mt-8 space-y-6">
+                        <div class="space-y-4">
+                            <div>
+                                <label for="email" class="block text-sm font-medium text-gray-300 mb-2">
+                                    Email address
+                                </label>
+                                <input id="email" name="email" type="email" required 
+                                       class="appearance-none relative block w-full px-3 py-3 border border-gray-600 placeholder-gray-400 text-white rounded-lg bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm" 
+                                       placeholder="Enter your email" data-mock="true">
+                            </div>
+                            <div>
+                                <label for="password" class="block text-sm font-medium text-gray-300 mb-2">
+                                    Password
+                                </label>
+                                <input id="password" name="password" type="password" required 
+                                       class="appearance-none relative block w-full px-3 py-3 border border-gray-600 placeholder-gray-400 text-white rounded-lg bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm" 
+                                       placeholder="Enter your password" data-mock="true">
+                            </div>
+                        </div>
+                        <div>
+                            <button type="submit" 
+                                    data-event="click:handleLogin" 
+                                    data-implementation="Should authenticate with Firebase Auth"
+                                    class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                                Sign in
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: LoginPage -->
+
+            <!-- @COMPONENT: Dashboard [main dashboard view] -->
+            <div id="dashboard" class="space-y-8">
+                <!-- Dashboard Header -->
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h1 class="text-3xl font-bold text-white">Student Dashboard</h1>
+                        <p class="mt-2 text-gray-400">Monitor student progress and risk levels</p>
+                    </div>
+                    <div class="mt-4 sm:mt-0">
+                        <span class="text-sm text-gray-400">Last updated: <span data-bind="lastUpdated">2 minutes ago</span></span>
+                    </div>
+                </div>
+
+                <!-- Stats Overview -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                        <div class="flex items-center">
+                            <div class="p-2 bg-green-500/10 rounded-lg">
+                                <div class="w-6 h-6 bg-green-500 rounded"></div>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-400">Low Risk</p>
+                                <p class="text-2xl font-bold text-white" data-bind="stats.lowRisk">142</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                        <div class="flex items-center">
+                            <div class="p-2 bg-amber-500/10 rounded-lg">
+                                <div class="w-6 h-6 bg-amber-500 rounded"></div>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-400">Medium Risk</p>
+                                <p class="text-2xl font-bold text-white" data-bind="stats.mediumRisk">38</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                        <div class="flex items-center">
+                            <div class="p-2 bg-red-500/10 rounded-lg">
+                                <div class="w-6 h-6 bg-red-500 rounded"></div>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-400">High Risk</p>
+                                <p class="text-2xl font-bold text-white" data-bind="stats.highRisk">12</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                        <div class="flex items-center">
+                            <div class="p-2 bg-blue-500/10 rounded-lg">
+                                <div class="w-6 h-6 bg-blue-500 rounded"></div>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-400">Total Students</p>
+                                <p class="text-2xl font-bold text-white" data-bind="stats.total">192</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0 sm:space-x-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Class</label>
+                                <select class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                                    <option>All Classes</option>
+                                    <option>Class 9A</option>
+                                    <option>Class 9B</option>
+                                    <option>Class 10A</option>
+                                    <option>Class 10B</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Risk Level</label>
+                                <select class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                                    <option>All Risk Levels</option>
+                                    <option>Low Risk</option>
+                                    <option>Medium Risk</option>
+                                    <option>High Risk</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <input type="text" placeholder="Search students..." 
+                                   class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                            <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
+                                Search
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Students Table -->
+                <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-700">
+                        <h3 class="text-lg font-medium text-white">Students</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-700">
+                            <thead class="bg-gray-700">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Student</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Class</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Attendance</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Score Average</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Risk Level</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-gray-800 divide-y divide-gray-700">
+                                <!-- @MAP: students.map(student => ( -->
+                                <tr class="hover:bg-gray-700 transition-colors">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <img class="h-10 w-10 rounded-full" src="https://images.unsplash.com/photo-1494790108755-2616b332fe3c?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=4&w=256&h=256&q=60" alt="">
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-white" data-bind="student.name">Sarah Johnson</div>
+                                                <div class="text-sm text-gray-400" data-bind="student.id">STU-001</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-sm text-gray-300" data-bind="student.class">9A</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-sm text-gray-300" data-bind="student.attendance">94%</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-sm text-gray-300" data-bind="student.scoreAverage">87.5</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800" data-bind="student.riskLevel">Low Risk</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button data-event="click:viewStudent" class="text-blue-400 hover:text-blue-300 mr-3">View</button>
+                                        <button data-event="click:editStudent" class="text-gray-400 hover:text-gray-300">Edit</button>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-gray-700 transition-colors">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <img class="h-10 w-10 rounded-full" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=4&w=256&h=256&q=60" alt="">
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-white">Michael Chen</div>
+                                                <div class="text-sm text-gray-400">STU-002</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-sm text-gray-300">9A</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-sm text-gray-300">76%</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-sm text-gray-300">72.3</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-800">Medium Risk</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button class="text-blue-400 hover:text-blue-300 mr-3">View</button>
+                                        <button class="text-gray-400 hover:text-gray-300">Edit</button>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-gray-700 transition-colors">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <img class="h-10 w-10 rounded-full" src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=4&w=256&h=256&q=60" alt="">
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-white">Emily Rodriguez</div>
+                                                <div class="text-sm text-gray-400">STU-003</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-sm text-gray-300">10B</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-sm text-gray-300">58%</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-sm text-gray-300">65.1</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">High Risk</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button class="text-blue-400 hover:text-blue-300 mr-3">View</button>
+                                        <button class="text-gray-400 hover:text-gray-300">Edit</button>
+                                    </td>
+                                </tr>
+                                <!-- @END_MAP )) -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="bg-gray-800 px-6 py-3 border-t border-gray-700">
+                        <div class="flex items-center justify-between">
+                            <div class="text-sm text-gray-400">
+                                Showing 1 to 3 of 192 results
+                            </div>
+                            <div class="flex space-x-2">
+                                <button class="px-3 py-1 text-sm bg-gray-700 text-gray-300 rounded hover:bg-gray-600 transition-colors">Previous</button>
+                                <button class="px-3 py-1 text-sm bg-blue-600 text-white rounded">1</button>
+                                <button class="px-3 py-1 text-sm bg-gray-700 text-gray-300 rounded hover:bg-gray-600 transition-colors">2</button>
+                                <button class="px-3 py-1 text-sm bg-gray-700 text-gray-300 rounded hover:bg-gray-600 transition-colors">3</button>
+                                <button class="px-3 py-1 text-sm bg-gray-700 text-gray-300 rounded hover:bg-gray-600 transition-colors">Next</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: Dashboard -->
+
+            <!-- @COMPONENT: StudentDetail [detailed student view] -->
+            <div id="student-detail" class="hidden space-y-8">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <button data-event="click:goBack" class="text-gray-400 hover:text-white transition-colors">
+                            <div class="w-6 h-6 bg-gray-500 rounded"></div>
+                        </button>
+                        <div>
+                            <h1 class="text-3xl font-bold text-white" data-bind="student.name">Sarah Johnson</h1>
+                            <p class="text-gray-400">Class <span data-bind="student.class">9A</span> • Student ID: <span data-bind="student.id">STU-001</span></p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <span class="inline-flex px-3 py-1 text-sm font-semibold rounded-full bg-green-100 text-green-800" data-bind="student.riskLevel">Low Risk</span>
+                        <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                            Add Intervention
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Student Info Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                        <h3 class="text-lg font-medium text-white mb-4">Current Status</h3>
+                        <div class="space-y-3">
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Attendance</span>
+                                <span class="text-white font-medium" data-bind="student.attendance">94%</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Score Average</span>
+                                <span class="text-white font-medium" data-bind="student.scoreAverage">87.5</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Last Updated</span>
+                                <span class="text-white font-medium" data-bind="student.lastUpdated">2 hours ago</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Attendance Chart -->
+                    <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                        <h3 class="text-lg font-medium text-white mb-4">Attendance Trend</h3>
+                        <div class="h-32">
+                            <canvas id="attendanceChart" data-implementation="Implement Chart.js line chart for attendance over time"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Scores Chart -->
+                    <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                        <h3 class="text-lg font-medium text-white mb-4">Score Trend</h3>
+                        <div class="h-32">
+                            <canvas id="scoresChart" data-implementation="Implement Chart.js line chart for scores over time"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Alerts and Interventions -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Recent Alerts -->
+                    <div class="bg-gray-800 rounded-xl border border-gray-700">
+                        <div class="px-6 py-4 border-b border-gray-700">
+                            <h3 class="text-lg font-medium text-white">Recent Alerts</h3>
+                        </div>
+                        <div class="p-6 space-y-4">
+                            <!-- @MAP: alerts.map(alert => ( -->
+                            <div class="flex items-start space-x-3 p-3 bg-gray-700 rounded-lg">
+                                <div class="w-2 h-2 bg-amber-500 rounded-full mt-2"></div>
+                                <div class="flex-1">
+                                    <p class="text-sm text-white font-medium" data-bind="alert.reason">Attendance dropped below 75%</p>
+                                    <p class="text-xs text-gray-400 mt-1" data-bind="alert.createdAt">2 days ago</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start space-x-3 p-3 bg-gray-700 rounded-lg">
+                                <div class="w-2 h-2 bg-red-500 rounded-full mt-2"></div>
+                                <div class="flex-1">
+                                    <p class="text-sm text-white font-medium">Score declined in Mathematics</p>
+                                    <p class="text-xs text-gray-400 mt-1">5 days ago</p>
+                                </div>
+                            </div>
+                            <!-- @END_MAP )) -->
+                        </div>
+                    </div>
+
+                    <!-- Interventions -->
+                    <div class="bg-gray-800 rounded-xl border border-gray-700">
+                        <div class="px-6 py-4 border-b border-gray-700">
+                            <h3 class="text-lg font-medium text-white">Interventions</h3>
+                        </div>
+                        <div class="p-6 space-y-4">
+                            <!-- @MAP: interventions.map(intervention => ( -->
+                            <div class="p-4 bg-gray-700 rounded-lg">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-sm font-medium text-white" data-bind="intervention.date">March 15, 2024</span>
+                                    <span class="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full" data-bind="intervention.outcome">In Progress</span>
+                                </div>
+                                <p class="text-sm text-gray-300" data-bind="intervention.note">Scheduled one-on-one tutoring sessions for Mathematics improvement</p>
+                            </div>
+                            <div class="p-4 bg-gray-700 rounded-lg">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-sm font-medium text-white">March 10, 2024</span>
+                                    <span class="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">Completed</span>
+                                </div>
+                                <p class="text-sm text-gray-300">Parent meeting to discuss attendance issues</p>
+                            </div>
+                            <!-- @END_MAP )) -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: StudentDetail -->
+
+            <!-- @COMPONENT: UploadPage [CSV upload functionality] -->
+            <div id="upload-page" class="hidden space-y-8">
+                <div>
+                    <h1 class="text-3xl font-bold text-white">Upload Student Data</h1>
+                    <p class="mt-2 text-gray-400">Import student information from CSV files</p>
+                </div>
+
+                <!-- Upload Section -->
+                <div class="bg-gray-800 rounded-xl p-8 border border-gray-700">
+                    <div class="text-center">
+                        <div class="mx-auto h-12 w-12 bg-blue-500/10 rounded-lg flex items-center justify-center mb-4">
+                            <div class="w-6 h-6 bg-blue-500 rounded"></div>
+                        </div>
+                        <h3 class="text-lg font-medium text-white mb-2">Upload CSV File</h3>
+                        <p class="text-gray-400 mb-6">Select a CSV file containing student data</p>
+                        
+                        <div class="border-2 border-dashed border-gray-600 rounded-lg p-8 hover:border-gray-500 transition-colors">
+                            <input type="file" id="csvFile" accept=".csv" class="hidden" data-event="change:handleFileUpload">
+                            <label for="csvFile" class="cursor-pointer">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-16 h-16 bg-gray-700 rounded-lg flex items-center justify-center mb-4">
+                                        <div class="w-8 h-8 bg-gray-500 rounded"></div>
+                                    </div>
+                                    <p class="text-white font-medium">Click to upload or drag and drop</p>
+                                    <p class="text-gray-400 text-sm mt-1">CSV files only</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preview Section -->
+                <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-700">
+                        <h3 class="text-lg font-medium text-white">Data Preview</h3>
+                        <p class="text-sm text-gray-400 mt-1">Review the first 5 rows before importing</p>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-700">
+                            <thead class="bg-gray-700">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Name</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Class</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Attendance</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Score Average</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Risk Level</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-gray-800 divide-y divide-gray-700" data-mock="true">
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-white">John Smith</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">9A</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">89%</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">82.5</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">Low</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-white">Mary Davis</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">9B</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">76%</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">68.2</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">Medium</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-white">James Wilson</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">10A</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">62%</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">55.8</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">High</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="px-6 py-4 border-t border-gray-700 bg-gray-800">
+                        <div class="flex items-center justify-between">
+                            <div class="text-sm text-gray-400">
+                                3 rows detected • Ready to import
+                            </div>
+                            <div class="flex space-x-3">
+                                <button class="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors">
+                                    Cancel
+                                </button>
+                                <button data-event="click:importData" 
+                                        data-implementation="Should process CSV and save to Firestore students collection"
+                                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+                                    Import Data
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Import History -->
+                <div class="bg-gray-800 rounded-xl border border-gray-700">
+                    <div class="px-6 py-4 border-b border-gray-700">
+                        <h3 class="text-lg font-medium text-white">Import History</h3>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        <div class="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                                <div>
+                                    <p class="text-sm font-medium text-white">students_march_2024.csv</p>
+                                    <p class="text-xs text-gray-400">192 records imported • March 15, 2024</p>
+                                </div>
+                            </div>
+                            <span class="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">Success</span>
+                        </div>
+                        <div class="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-2 h-2 bg-amber-500 rounded-full"></div>
+                                <div>
+                                    <p class="text-sm font-medium text-white">students_february_2024.csv</p>
+                                    <p class="text-xs text-gray-400">180 records imported • February 28, 2024</p>
+                                </div>
+                            </div>
+                            <span class="text-xs px-2 py-1 bg-amber-100 text-amber-800 rounded-full">Warning</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: UploadPage -->
+
+        </main>
+        <!-- @END_COMPONENT: MainContent -->
+    </div>
+    <!-- @END_COMPONENT: App -->
+
+    <script>
+        // TODO: Implement business logic, API calls, and state management
+        (function() {
+            // Simple page navigation simulation
+            const pages = ['dashboard', 'upload-page', 'student-detail', 'login-page'];
+            let currentPage = 'dashboard';
+
+            function showPage(pageId) {
+                pages.forEach(page => {
+                    const element = document.getElementById(page);
+                    if (element) {
+                        element.classList.add('hidden');
+                    }
+                });
+                
+                const targetPage = document.getElementById(pageId);
+                if (targetPage) {
+                    targetPage.classList.remove('hidden');
+                    currentPage = pageId;
+                }
+            }
+
+            // Navigation event handlers
+            document.addEventListener('click', function(e) {
+                const target = e.target;
+                
+                if (target.getAttribute('href') === '#dashboard') {
+                    e.preventDefault();
+                    showPage('dashboard');
+                } else if (target.getAttribute('href') === '#upload') {
+                    e.preventDefault();
+                    showPage('upload-page');
+                } else if (target.getAttribute('href') === '#student-detail') {
+                    e.preventDefault();
+                    showPage('student-detail');
+                }
+            });
+
+            // Initialize charts when page loads
+            // @FUNCTIONALITY: These charts should implement real data visualization using Chart.js
+            function initializeCharts() {
+                const attendanceCtx = document.getElementById('attendanceChart');
+                const scoresCtx = document.getElementById('scoresChart');
+                
+                if (attendanceCtx && typeof Chart !== 'undefined') {
+                    // Placeholder for attendance chart
+                    // TODO: Implement Chart.js line chart with real attendance data
+                }
+                
+                if (scoresCtx && typeof Chart !== 'undefined') {
+                    // Placeholder for scores chart  
+                    // TODO: Implement Chart.js line chart with real score data
+                }
+            }
+
+            // Initialize the application
+            showPage('dashboard');
+            initializeCharts();
+        })();
+    </script>
+</body>
+</html>

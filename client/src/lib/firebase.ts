@@ -1,37 +1,74 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, User } from "firebase/auth";
+import { signInWithPopup, signOut } from "firebase/auth";
 
+
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithRedirect,
+  getRedirectResult,
+  
+  User,
+  UserCredential,
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  
+  onAuthStateChanged
+} from "firebase/auth";
+
+// Your Firebase config
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebasestorage.app`,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-};
+  apiKey: "AIzaSyDaKwaf-X3Bk3CE6P13FZ7_szcr49e75w8",
+  authDomain: "mentorlens-799c2.firebaseapp.com",
+  projectId: "mentorlens-799c2",
+  storageBucket: "mentorlens-799c2.firebasestorage.app",
+  messagingSenderId: "803118054122",
+  measurementId: "G-5NTB8ZTPN4"};
 
 const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const googleProvider = new GoogleAuthProvider();
+const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
 
-// Configure Google provider
-googleProvider.addScope('email');
-googleProvider.addScope('profile');
+// Start Google sign-in redirect
 
-// Auth functions
-export const signInWithGoogle = () => {
-  return signInWithRedirect(auth, googleProvider);
+
+
+// Handle redirect result
+export const handleRedirectResult = async (): Promise<UserCredential | null> => {
+  try {
+    const result = await getRedirectResult(auth);
+    return result;
+  } catch (error) {
+    console.error("Firebase redirect error:", error);
+    return null;
+  }
 };
 
-export const logout = () => {
-  return signOut(auth);
+
+
+// Google sign-in
+export const signInWithGoogle = async () => {
+  await signInWithPopup(auth, googleProvider);
 };
 
-export const handleRedirectResult = () => {
-  return getRedirectResult(auth);
+// Email/password login
+export const loginWithEmail = async (email: string, password: string) => {
+  return await signInWithEmailAndPassword(auth, email, password);
 };
 
-export const onAuthStateChange = (callback: (user: User | null) => void) => {
+// Email/password registration
+export const registerWithEmail = async (email: string, password: string) => {
+  return await createUserWithEmailAndPassword(auth, email, password);
+};
+
+// Logout
+export const logout = async () => {
+  await signOut(auth);
+};
+
+// Optional: listen for auth state changes
+export const onAuthStateChange = (callback: (user: any) => void) => {
   return onAuthStateChanged(auth, callback);
 };
 
-// Export User type is handled by direct import from firebase/auth
+export { auth, googleProvider };
