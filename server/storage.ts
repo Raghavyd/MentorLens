@@ -1,12 +1,9 @@
 import {
-  users,
   students,
   alerts,
   interventions,
   scoreHistory,
   attendanceHistory,
-  type User,
-  type InsertUser,
   type Student,
   type InsertStudent,
   type Alert,
@@ -22,11 +19,6 @@ import { db } from "./db";
 import { eq, desc, and, count, sql } from "drizzle-orm";
 
 export interface IStorage {
-  // User operations
-  getUser(id: string): Promise<User | undefined>;
-  getUserByEmail(email: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
-
   // Student operations
   getStudents(filters?: { class?: string; riskLevel?: string; search?: string }): Promise<Student[]>;
   getStudent(id: string): Promise<Student | undefined>;

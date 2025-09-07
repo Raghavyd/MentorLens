@@ -12,17 +12,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Users table for simple authentication
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  email: varchar("email").notNull().unique(),
-  password: varchar("password").notNull(),
-  firstName: varchar("first_name"),
-  lastName: varchar("last_name"),
-  profileImageUrl: varchar("profile_image_url"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
+// Firebase authentication is used, no local users table needed
 
 // Students table
 export const students = pgTable("students", {
@@ -109,16 +99,7 @@ export const attendanceHistoryRelations = relations(attendanceHistory, ({ one })
 }));
 
 // Insert schemas
-export const insertUserSchema = createInsertSchema(users).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const loginUserSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-});
+// User schemas removed - using Firebase authentication
 
 export const insertStudentSchema = createInsertSchema(students).omit({
   id: true,
@@ -147,9 +128,7 @@ export const insertAttendanceHistorySchema = createInsertSchema(attendanceHistor
 });
 
 // Types
-export type User = typeof users.$inferSelect;
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type LoginUser = z.infer<typeof loginUserSchema>;
+// User types removed - using Firebase authentication
 export type Student = typeof students.$inferSelect;
 export type InsertStudent = z.infer<typeof insertStudentSchema>;
 export type Alert = typeof alerts.$inferSelect;
