@@ -34,4 +34,4 @@ export const onAuthStateChange = (callback: (user: User | null) => void) => {
   return onAuthStateChanged(auth, callback);
 };
 
-export { User };
+// Export User type is handled by direct import from firebase/auth
