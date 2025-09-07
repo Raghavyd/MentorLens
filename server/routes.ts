@@ -1,16 +1,29 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import session from "express-session";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertStudentSchema, insertAlertSchema, insertInterventionSchema } from "@shared/schema";
+import { requireAuth, hashPassword, verifyPassword } from "./auth";
+import { insertStudentSchema, insertAlertSchema, insertInterventionSchema, insertUserSchema, loginUserSchema } from "@shared/schema";
 import multer from "multer";
 import { parse as parseCsv } from "csv-parse/sync";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup session middleware
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'dev-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: false, // Set to true in production with HTTPS
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
+    }
+  }));
+
   // Setup file upload middleware
   const upload = multer({ 
     storage: multer.memoryStorage(),
-    fileFilter: (req, file, cb) => {
+    fileFilter: (req: any, file: any, cb: any) => {
       if (file.mimetype === 'text/csv') {
         cb(null, true);
       } else {
@@ -19,15 +32,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Auth middleware
-  await setupAuth(app);
-
   // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  app.post('/api/register', async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
+      const userData = insertUserSchema.parse(req.body);
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(userData.email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User already exists" });
+      }
+
+      // Hash password
+      const hashedPassword = await hashPassword(userData.password);
+      
+      // Create user
+      const user = await storage.createUser({
+        ...userData,
+        password: hashedPassword,
+      });
+
+      // Set session
+      (req.session as any).userId = user.id;
+
+      // Return user without password
+      const { password, ...userWithoutPassword } = user;
+      res.status(201).json(userWithoutPassword);
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(400).json({ message: "Failed to register user" });
+    }
+  });
+
+  app.post('/api/login', async (req, res) => {
+    try {
+      const { email, password } = loginUserSchema.parse(req.body);
+      
+      // Find user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Verify password
+      const isValidPassword = await verifyPassword(password, user.password);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Set session
+      (req.session as any).userId = user.id;
+
+      // Return user without password
+      const { password: _, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(400).json({ message: "Failed to login" });
+    }
+  });
+
+  app.post('/api/logout', (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Logout error:', err);
+        return res.status(500).json({ message: 'Failed to logout' });
+      }
+      res.json({ message: 'Logged out successfully' });
+    });
+  });
+
+  app.get('/api/auth/user', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user!.id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Return user without password
+      const { password, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
@@ -35,7 +119,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Student routes
-  app.get('/api/students', isAuthenticated, async (req, res) => {
+  app.get('/api/students', requireAuth, async (req: any, res) => {
     try {
       const { class: className, riskLevel, search } = req.query;
       const filters = {
@@ -51,7 +135,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/students/stats', isAuthenticated, async (req, res) => {
+  app.get('/api/students/stats', requireAuth, async (req: any, res) => {
     try {
       const stats = await storage.getStudentStats();
       res.json(stats);
@@ -61,7 +145,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/students/:id', isAuthenticated, async (req, res) => {
+  app.get('/api/students/:id', requireAuth, async (req: any, res) => {
     try {
       const student = await storage.getStudent(req.params.id);
       if (!student) {
@@ -74,7 +158,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/students', isAuthenticated, async (req, res) => {
+  app.post('/api/students', requireAuth, async (req: any, res) => {
     try {
       const validatedData = insertStudentSchema.parse(req.body);
       const student = await storage.createStudent(validatedData);
@@ -85,7 +169,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/students/:id', isAuthenticated, async (req, res) => {
+  app.put('/api/students/:id', requireAuth, async (req: any, res) => {
     try {
       const validatedData = insertStudentSchema.partial().parse(req.body);
       const student = await storage.updateStudent(req.params.id, validatedData);
@@ -96,7 +180,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/students/:id', isAuthenticated, async (req, res) => {
+  app.delete('/api/students/:id', requireAuth, async (req: any, res) => {
     try {
       await storage.deleteStudent(req.params.id);
       res.status(204).send();
@@ -107,7 +191,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Alert routes
-  app.get('/api/students/:id/alerts', isAuthenticated, async (req, res) => {
+  app.get('/api/students/:id/alerts', requireAuth, async (req: any, res) => {
     try {
       const alerts = await storage.getAlertsByStudent(req.params.id);
       res.json(alerts);
@@ -117,7 +201,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/students/:id/alerts', isAuthenticated, async (req, res) => {
+  app.post('/api/students/:id/alerts', requireAuth, async (req: any, res) => {
     try {
       const alertData = insertAlertSchema.parse({
         ...req.body,
@@ -132,7 +216,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Intervention routes
-  app.get('/api/students/:id/interventions', isAuthenticated, async (req, res) => {
+  app.get('/api/students/:id/interventions', requireAuth, async (req: any, res) => {
     try {
       const interventions = await storage.getInterventionsByStudent(req.params.id);
       res.json(interventions);
@@ -142,7 +226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/students/:id/interventions', isAuthenticated, async (req, res) => {
+  app.post('/api/students/:id/interventions', requireAuth, async (req: any, res) => {
     try {
       const interventionData = insertInterventionSchema.parse({
         ...req.body,
@@ -157,7 +241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // History routes for charts
-  app.get('/api/students/:id/score-history', isAuthenticated, async (req, res) => {
+  app.get('/api/students/:id/score-history', requireAuth, async (req: any, res) => {
     try {
       const history = await storage.getScoreHistory(req.params.id);
       res.json(history);
@@ -167,7 +251,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/students/:id/attendance-history', isAuthenticated, async (req, res) => {
+  app.get('/api/students/:id/attendance-history', requireAuth, async (req: any, res) => {
     try {
       const history = await storage.getAttendanceHistory(req.params.id);
       res.json(history);
@@ -178,7 +262,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // CSV Upload route
-  app.post('/api/upload/csv', isAuthenticated, upload.single('csvFile'), async (req, res) => {
+  app.post('/api/upload/csv', requireAuth, upload.single('csvFile'), async (req: any, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });
@@ -233,7 +317,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // CSV Preview route
-  app.post('/api/upload/csv/preview', isAuthenticated, upload.single('csvFile'), async (req, res) => {
+  app.post('/api/upload/csv/preview', requireAuth, upload.single('csvFile'), async (req: any, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });
